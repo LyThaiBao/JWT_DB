@@ -1,34 +1,24 @@
 package com.securityJWT.securityJWT.rest;
 
-import com.securityJWT.securityJWT.dao.StudentRepository;
-import com.securityJWT.securityJWT.dto.LoginRequest;
-import com.securityJWT.securityJWT.dto.LoginResponse;
-import com.securityJWT.securityJWT.dto.RegisterFormDTO;
-import com.securityJWT.securityJWT.dto.StudentDetailsDTO;
-import com.securityJWT.securityJWT.entity.User;
-import com.securityJWT.securityJWT.security.JwtUtil;
+import com.securityJWT.securityJWT.dto.*;
+import com.securityJWT.securityJWT.service.AuthenticationService;
+import com.securityJWT.securityJWT.service.RefreshTokenService;
 import com.securityJWT.securityJWT.service.StudentService;
-import com.securityJWT.securityJWT.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
-    private final UserService userService;
     private final StudentService studentService;
-    private final AuthenticationManager authenticationManager;
-    private final JwtUtil jwtUtil;
+    private final AuthenticationService authenticationService;
+    private final RefreshTokenService refreshTokenService;
     @PostMapping("/register")
     public StudentDetailsDTO registerUser(@RequestBody RegisterFormDTO registerData){
         return  this.studentService.registerStudent(registerData);
@@ -36,14 +26,59 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest){
-        try{
-            Authentication authentication = this.authenticationManager
-                    .authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUsername(),loginRequest.getPassword()));
-            String token = jwtUtil.generateToken(loginRequest.getUsername());
-            return ResponseEntity.ok(LoginResponse.builder().token(token).build());
-        } catch (Exception e) {
-            return new ResponseEntity<>("Sai thong tin dang nhap", HttpStatus.UNAUTHORIZED);
-        }
+        System.out.println(">>>Login"+loginRequest);
+        LoginResponse response = this.authenticationService.authenticateUser(loginRequest);
+        // 2. Tạo Cookie chứa Access Token (HttpOnly)
+        ResponseCookie accessCookie = ResponseCookie
+                .from("accessToken",response.getAccessToken())
+                .httpOnly(true)
+                .secure(false)
+                .path("/").sameSite("Strict")
+                .maxAge(3600)
+                .build();
+        ResponseCookie refreshCookie = ResponseCookie
+                .from("refreshToken",response.getRefreshToken())
+                .httpOnly(true)
+                .secure(false)
+                .maxAge(7*24*3600)
+                .path("/").sameSite("Strict")
+                .build();
 
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE,accessCookie.toString())
+                .header(HttpHeaders.SET_COOKIE,refreshCookie.toString())
+                .body("Login Success! Chìa khóa đã được cất vào két sắt.")
+                ;
+    }
+
+    @PostMapping("/refreshToken")
+    public ResponseEntity<?> refreshToken(@CookieValue(name = "refreshToken") String refresh){
+      LoginResponse response =   this.refreshTokenService.refreshToken(refresh);
+        ResponseCookie accessCookie = ResponseCookie
+                .from("accessToken",response.getAccessToken())
+                .httpOnly(true)
+                .secure(false)
+                .path("/").sameSite("Strict")
+                .maxAge(3600)
+                .build();
+        ResponseCookie refreshCookie = ResponseCookie
+                .from("refreshToken",response.getRefreshToken())
+                .httpOnly(true)
+                .secure(false)
+                .maxAge(7*24*3600)
+                .path("/").sameSite("Strict")
+                .build();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE,accessCookie.toString())
+                .header(HttpHeaders.SET_COOKIE,refreshCookie.toString())
+                .body("Refresh Success");
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@CookieValue(name = "refreshToken") String refresh){
+        System.out.println("Refresh >> "+refresh);
+
+        this.refreshTokenService.logout(refresh);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

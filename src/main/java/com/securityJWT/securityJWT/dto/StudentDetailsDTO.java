@@ -1,6 +1,7 @@
 package com.securityJWT.securityJWT.dto;
 
 
+import com.fasterxml.jackson.annotation.JsonMerge;
 import lombok.*;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +17,7 @@ import java.util.List;
 public class StudentDetailsDTO {
 
     // StudentListDTO contained ID
+    @JsonMerge
     private StudentListDTO profile;
     private List<String> roles;
     private List<String> classRooms;

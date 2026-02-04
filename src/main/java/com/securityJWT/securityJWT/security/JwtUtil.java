@@ -2,12 +2,13 @@ package com.securityJWT.securityJWT.security;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import org.springframework.stereotype.Component;
 
 import java.util.Date;
-
+@Component
 public class JwtUtil {
     private String SECRET_KEY = "luv2codespringbootsecuritysecretkey2026captainninja";
-    private long JwtExpiration = 1000*60*60;
+    private long JwtExpiration = 1000*60;
     //--------------Create token--------------
     public String generateToken(String username){
         return Jwts.builder()
@@ -17,6 +18,7 @@ public class JwtUtil {
                 .signWith(SignatureAlgorithm.HS256,SECRET_KEY)
                 .compact();
     }
+
 
     public String extractUsername(String token){
         return Jwts.parser()

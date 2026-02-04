@@ -5,27 +5,27 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.SQLDelete;
+
+import java.time.Instant;
 
 
 @Entity
-@Table(name = "users")
+@Table(name = "refresh_token")
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
 @Builder
-@SQLDelete(sql = "UPDATE users SET enable = false WHERE id = ?")
-
-public class User {
+public class RefreshToken {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Integer id;
-    @Column(name = "username")
-    private String username;
-    @Column(name = "password")
-    private String password;
-    @Column(name = "enable")
-    private boolean enable;
+    @Column(name = "token",unique = true)
+    private String token;
+    @Column(name = "expiry_date")
+    private Instant expired;
+    @OneToOne
+    @JoinColumn(name = "user_id")
+    private User user;
 
 }

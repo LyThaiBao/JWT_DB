@@ -5,6 +5,7 @@ import com.securityJWT.securityJWT.dto.RegisterFormDTO;
 import com.securityJWT.securityJWT.entity.User;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 public class UserServiceImp implements UserService{
     private final UserRepository userRepository;
 
+    private final PasswordEncoder passwordEncoder;
     @Override
     public User postUser(RegisterFormDTO register) {
         System.out.println(">>>"+register);
@@ -20,10 +22,15 @@ public class UserServiceImp implements UserService{
         User user = User.builder()
                     .enable(true)
                     .username(register.getUsername())
-                    .password(register.getPassword())
+                    .password(this.passwordEncoder.encode(register.getPassword()))
                     .build();
         this.userRepository.save(user);
-        System.out.println("User >>"+user);
         return user;
+    }
+    public User deleteUser(Integer id){
+        User user = this.userRepository.findById(id).orElseThrow(()->new RuntimeException("Not found Student"));
+        this.userRepository.delete(user);
+        return user;
+
     }
 }

@@ -14,6 +14,6 @@ public interface StudentService {
     List<StudentListDTO> getStudentLists();
     StudentDetailsDTO getStudentDetailById(Integer id);
     StudentDetailsDTO registerStudent(RegisterFormDTO registerFormDTO);
-//    StudentDetailsDTO patchStudent(Integer id, Map<String,StudentDetailsDTO>patchPayload);
+    StudentDetailsDTO patchStudent(Integer id, Map<String,Object>patchPayload);
 
 }

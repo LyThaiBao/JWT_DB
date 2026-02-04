@@ -1,5 +1,6 @@
 package com.securityJWT.securityJWT.security;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -10,25 +11,33 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import java.net.http.HttpRequest;
-
+@RequiredArgsConstructor
 @Configuration
 public class Security {
-
+    private final JwtFilter jwtFilter;
+    private final JwtAuthenticationEntryPoint  jwtAuthenticationEntryPoint;
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http){
         http
                 .csrf(csrf->csrf.disable())
+                //handle outside  DispatcherServlet
+                .exceptionHandling(exception->exception.authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .sessionManagement(session->session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(configure->configure.requestMatchers("/auth/**").permitAll()
+                .authorizeHttpRequests(configure->configure
+                        .requestMatchers("/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET,"/api/students/**").hasAnyRole("STUDENT","TEACHER","ADMIN")
                         .requestMatchers(HttpMethod.GET,"/api/students").hasAnyRole("STUDENT","TEACHER","ADMIN")
                         .requestMatchers(HttpMethod.PUT,"/api/students/**").hasAnyRole("TEACHER","ADMIN")
+                        .requestMatchers(HttpMethod.PATCH,"/api/students/**").hasAnyRole("TEACHER","ADMIN","STUDENT")
                         .requestMatchers(HttpMethod.POST,"/api/students/**").hasAnyRole("TEACHER","ADMIN")
-                        .requestMatchers(HttpMethod.DELETE,"/api/students/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE,"/api/students/**").hasAnyRole("TEACHER","ADMIN","STUDENT")//.hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE,"/users/**").hasAnyRole("TEACHER","ADMIN","STUDENT")//.hasRole("ADMIN")
 
                 );
+        http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
 
 
